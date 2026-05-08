@@ -1,0 +1,41 @@
+# Unity generated folders
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+
+# Unity cache / package artifacts
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.DS_Store
+
+# Unity meta and import metadata that are regenerated
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Addressables / build cache
+/[Aa]ssets/AddressableAssetsData/*/build/*
+/[Aa]ssets/AddressableAssetsData/*/aa/*
+
+# IDE and editor folders
+.vs/
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+ehthumbs.db
