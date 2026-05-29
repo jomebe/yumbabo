@@ -1,5 +1,7 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController))]
 public sealed class LunchRushPlayerController : MonoBehaviour
@@ -42,6 +44,34 @@ public sealed class LunchRushPlayerController : MonoBehaviour
     [SerializeField] private float slideScaleSpeed = 14f;
     [SerializeField] private Transform modelRoot;
 
+    [Header("Game Over FX")]
+    [SerializeField] private bool playGameOverFx = true;
+    [SerializeField] private ParticleSystem gameOverParticles;
+    [SerializeField] private Color gameOverTint = Color.white;
+    [SerializeField] private float gameOverTintDuration = 0.18f;
+    [SerializeField] private int gameOverFlashCount = 3;
+    [SerializeField] private float gameOverFlashInterval = 0.04f;
+    [SerializeField] private float gameOverPopScale = 1.35f;
+    [SerializeField] private float gameOverPopDuration = 0.1f;
+    [SerializeField] private float gameOverShrinkDuration = 0.2f;
+    [SerializeField] private float gameOverSpinDegrees = 1080f;
+    [SerializeField] private float gameOverSpinDuration = 0.35f;
+    [SerializeField] private Vector3 gameOverSpinAxis = new Vector3(0f, 1f, 0f);
+    [SerializeField] private float gameOverParticleScale = 4.5f;
+    [SerializeField] private int gameOverParticleBursts = 3;
+    [SerializeField] private float gameOverParticleBurstDelay = 0.04f;
+    [SerializeField] private Vector3 gameOverParticleOffset = new Vector3(0f, 1.15f, 0f);
+    [SerializeField] private bool gameOverParticleUsePlayerRotation = true;
+    [SerializeField] private float gameOverDestroyDelay = 0.05f;
+    [SerializeField] private bool disableCollisionsOnGameOver = true;
+    [SerializeField] private bool disableAnimatorOnGameOver = true;
+    [SerializeField] private bool freezeCameraOnGameOver = true;
+    [SerializeField] private float freezeCameraDelay = 0.06f;
+    [SerializeField] private bool lockDeathPosition = true;
+    [SerializeField] private bool lockDeathRotation = false;
+    [SerializeField] private bool restartOnAnyKey = true;
+    [SerializeField] private float gameOverInputDelay = 0.35f;
+
     private CharacterController controller;
     private Animator animator;
     private float currentSpeed;
@@ -63,6 +93,13 @@ public sealed class LunchRushPlayerController : MonoBehaviour
     private int hearts;
     private bool jumpAnimationActive;
     private bool dead;
+    private Renderer[] renderers;
+    private Color[] baseColors;
+    private Collider[] colliders;
+    private Coroutine gameOverRoutine;
+    private Vector3 deathPosition;
+    private Quaternion deathRotation;
+    private float deathTime;
 
     public float CurrentSpeed
     {
@@ -87,6 +124,9 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         hearts = maxHearts;
         heartUI = FindFirstObjectByType<HeartUI>();
         followCamera = FindFirstObjectByType<FollowCamera>();
+        renderers = GetComponentsInChildren<Renderer>();
+        colliders = GetComponentsInChildren<Collider>();
+        CacheBaseColors();
 
         if (animator != null)
         {
@@ -128,6 +168,11 @@ public sealed class LunchRushPlayerController : MonoBehaviour
     {
         if (dead)
         {
+            if (restartOnAnyKey && Time.time - deathTime >= gameOverInputDelay && IsRestartPressed())
+            {
+                RestartScene();
+            }
+
             return;
         }
 
@@ -147,6 +192,21 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (dead)
+        {
+            if (lockDeathPosition)
+            {
+                transform.position = deathPosition;
+            }
+
+            if (lockDeathRotation)
+            {
+                transform.rotation = deathRotation;
+            }
+
+            return;
+        }
+
         ApplyControlledYaw();
     }
 
@@ -381,12 +441,325 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     private void Die()
     {
+        if (dead)
+        {
+            return;
+        }
+
         dead = true;
+        deathPosition = transform.position;
+        deathRotation = transform.rotation;
+        deathTime = Time.time;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         heartUI?.ShowGameOver();
+
+        if (followCamera == null)
+        {
+            followCamera = FindFirstObjectByType<FollowCamera>();
+        }
+
         followCamera?.Shake(0.9f, 1.4f);
+        if (freezeCameraOnGameOver && followCamera != null)
+        {
+            if (freezeCameraDelay <= 0f)
+            {
+                followCamera.enabled = false;
+            }
+            else
+            {
+                StartCoroutine(FreezeCameraAfterDelay());
+            }
+        }
+
         Debug.Log("[LunchRushGameOver]");
+
+        if (gameOverRoutine != null)
+        {
+            StopCoroutine(gameOverRoutine);
+        }
+
+        gameOverRoutine = StartCoroutine(PlayGameOverFx());
+    }
+
+    private IEnumerator FreezeCameraAfterDelay()
+    {
+        float delay = Mathf.Max(0f, freezeCameraDelay);
+        if (delay > 0f)
+        {
+            yield return new WaitForSeconds(delay);
+        }
+
+        if (followCamera != null)
+        {
+            followCamera.enabled = false;
+        }
+    }
+
+    private void CacheBaseColors()
+    {
+        if (renderers == null || renderers.Length == 0)
+        {
+            baseColors = null;
+            return;
+        }
+
+        baseColors = new Color[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Material material = renderers[i] != null ? renderers[i].material : null;
+            if (material != null && material.HasProperty("_Color"))
+            {
+                baseColors[i] = material.color;
+            }
+            else if (material != null && material.HasProperty("_BaseColor"))
+            {
+                baseColors[i] = material.GetColor("_BaseColor");
+            }
+            else
+            {
+                baseColors[i] = Color.white;
+            }
+        }
+    }
+
+    private void ApplyTint(float t)
+    {
+        if (renderers == null || baseColors == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Material material = renderers[i] != null ? renderers[i].material : null;
+            if (material == null)
+            {
+                continue;
+            }
+
+            Color baseColor = baseColors.Length > i ? baseColors[i] : Color.white;
+            Color tint = Color.Lerp(baseColor, gameOverTint, t);
+            if (material.HasProperty("_Color"))
+            {
+                material.color = tint;
+            }
+            else if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", tint);
+            }
+        }
+    }
+
+    private void DisableCollisions()
+    {
+        if (colliders == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            if (colliders[i] != null)
+            {
+                colliders[i].enabled = false;
+            }
+        }
+    }
+
+    private void SpawnGameOverParticles()
+    {
+        if (gameOverParticles == null)
+        {
+            return;
+        }
+
+        int bursts = Mathf.Max(1, gameOverParticleBursts);
+        StartCoroutine(SpawnParticleBursts(bursts));
+    }
+
+    private IEnumerator SpawnParticleBursts(int bursts)
+    {
+        float delay = Mathf.Max(0f, gameOverParticleBurstDelay);
+        for (int i = 0; i < bursts; i++)
+        {
+            SpawnParticleBurst();
+            if (i < bursts - 1 && delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+        }
+    }
+
+    private void SpawnParticleBurst()
+    {
+        Transform root = GetModelTransform();
+        Vector3 position = root.TransformPoint(gameOverParticleOffset);
+        Quaternion rotation = gameOverParticleUsePlayerRotation ? transform.rotation : Quaternion.identity;
+        ParticleSystem particles = Instantiate(gameOverParticles, position, rotation);
+        float scale = Mathf.Max(0.01f, gameOverParticleScale);
+        particles.transform.localScale = particles.transform.localScale * scale;
+        particles.Play();
+
+        ParticleSystem.MainModule main = particles.main;
+        float lifetime = main.duration;
+        lifetime += main.startLifetime.constantMax;
+        Destroy(particles.gameObject, lifetime);
+    }
+
+    private Vector3 GetModelScale()
+    {
+        return GetModelTransform().localScale;
+    }
+
+    private void SetModelScale(Vector3 scale)
+    {
+        GetModelTransform().localScale = scale;
+    }
+
+    private Transform GetModelTransform()
+    {
+        return modelRoot != null ? modelRoot : transform;
+    }
+
+    private Quaternion GetModelRotation()
+    {
+        return GetModelTransform().localRotation;
+    }
+
+    private void SetModelRotation(Quaternion rotation)
+    {
+        Transform root = GetModelTransform();
+        if (root == transform && lockDeathRotation)
+        {
+            return;
+        }
+
+        root.localRotation = rotation;
+    }
+
+    private IEnumerator PlayGameOverFx()
+    {
+        if (disableCollisionsOnGameOver)
+        {
+            DisableCollisions();
+        }
+
+        if (controller != null)
+        {
+            controller.enabled = false;
+        }
+
+        if (animator != null && disableAnimatorOnGameOver)
+        {
+            animator.enabled = false;
+        }
+
+        if (!playGameOverFx)
+        {
+            if (gameOverDestroyDelay > 0f)
+            {
+                yield return new WaitForSeconds(gameOverDestroyDelay);
+            }
+
+            if (restartOnAnyKey)
+            {
+                SetModelScale(Vector3.zero);
+                yield break;
+            }
+
+            Destroy(gameObject);
+            yield break;
+        }
+
+        SpawnGameOverParticles();
+
+        float tintTime = Mathf.Max(0.01f, gameOverTintDuration);
+        float timer = 0f;
+        while (timer < tintTime)
+        {
+            timer += Time.deltaTime;
+            ApplyTint(Mathf.Clamp01(timer / tintTime));
+            yield return null;
+        }
+
+        int flashes = Mathf.Max(0, gameOverFlashCount);
+        float flashInterval = Mathf.Max(0.01f, gameOverFlashInterval);
+        for (int i = 0; i < flashes; i++)
+        {
+            ApplyTint(1f);
+            yield return new WaitForSeconds(flashInterval);
+            ApplyTint(0f);
+            yield return new WaitForSeconds(flashInterval);
+        }
+
+        ApplyTint(1f);
+
+        Vector3 startScale = GetModelScale();
+        Vector3 popScale = startScale * gameOverPopScale;
+        Quaternion startRotation = GetModelRotation();
+        Vector3 spinAxis = gameOverSpinAxis.sqrMagnitude > 0.001f ? gameOverSpinAxis.normalized : Vector3.up;
+        float spinDuration = Mathf.Max(0.01f, gameOverSpinDuration);
+        float spinTimer = 0f;
+
+        float popTime = Mathf.Max(0.01f, gameOverPopDuration);
+        timer = 0f;
+        while (timer < popTime)
+        {
+            timer += Time.deltaTime;
+            SetModelScale(Vector3.Lerp(startScale, popScale, Mathf.Clamp01(timer / popTime)));
+            spinTimer += Time.deltaTime;
+            float spinT = spinTimer / spinDuration;
+            SetModelRotation(startRotation * Quaternion.AngleAxis(gameOverSpinDegrees * spinT, spinAxis));
+            yield return null;
+        }
+
+        float shrinkTime = Mathf.Max(0.01f, gameOverShrinkDuration);
+        timer = 0f;
+        while (timer < shrinkTime)
+        {
+            timer += Time.deltaTime;
+            SetModelScale(Vector3.Lerp(popScale, Vector3.zero, Mathf.Clamp01(timer / shrinkTime)));
+            spinTimer += Time.deltaTime;
+            float spinT = spinTimer / spinDuration;
+            SetModelRotation(startRotation * Quaternion.AngleAxis(gameOverSpinDegrees * spinT, spinAxis));
+            yield return null;
+        }
+
+        if (gameOverDestroyDelay > 0f)
+        {
+            yield return new WaitForSeconds(gameOverDestroyDelay);
+        }
+
+        if (restartOnAnyKey)
+        {
+            SetModelScale(Vector3.zero);
+            yield break;
+        }
+
+        Destroy(gameObject);
+    }
+
+    private bool IsRestartPressed()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+        {
+            return true;
+        }
+
+        Mouse mouse = Mouse.current;
+        if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private void RestartScene()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     private void LogMouseTurn(float mouseX, float turnDegrees, string reason)

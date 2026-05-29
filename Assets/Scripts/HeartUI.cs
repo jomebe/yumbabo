@@ -5,8 +5,10 @@ public sealed class HeartUI : MonoBehaviour
 {
     [SerializeField] private Text heartText;
     [SerializeField] private Text gameOverText;
+    [SerializeField] private Text restartText;
     [SerializeField] private string fullHeart = "<3";
     [SerializeField] private string emptyHeart = "--";
+    [SerializeField] private string restartMessage = "Press any key to restart";
 
     public static HeartUI CreateRuntime()
     {
@@ -50,9 +52,28 @@ public sealed class HeartUI : MonoBehaviour
         gameOverRect.anchoredPosition = Vector2.zero;
         gameOverRect.sizeDelta = new Vector2(600f, 140f);
 
+        GameObject restartObject = new GameObject("RestartText");
+        restartObject.transform.SetParent(canvasObject.transform, false);
+        Text restart = restartObject.AddComponent<Text>();
+        restart.font = GetBuiltinFont();
+        restart.fontSize = 28;
+        restart.fontStyle = FontStyle.Bold;
+        restart.color = new Color(1f, 1f, 1f, 0.9f);
+        restart.alignment = TextAnchor.MiddleCenter;
+        restart.text = "Press any key to restart";
+        restart.enabled = false;
+
+        RectTransform restartRect = restart.GetComponent<RectTransform>();
+        restartRect.anchorMin = new Vector2(0.5f, 0.5f);
+        restartRect.anchorMax = new Vector2(0.5f, 0.5f);
+        restartRect.pivot = new Vector2(0.5f, 0.5f);
+        restartRect.anchoredPosition = new Vector2(0f, -80f);
+        restartRect.sizeDelta = new Vector2(520f, 60f);
+
         HeartUI ui = canvasObject.AddComponent<HeartUI>();
         ui.heartText = hearts;
         ui.gameOverText = gameOver;
+        ui.restartText = restart;
         return ui;
     }
 
@@ -81,6 +102,12 @@ public sealed class HeartUI : MonoBehaviour
         if (gameOverText != null)
         {
             gameOverText.enabled = true;
+        }
+
+        if (restartText != null)
+        {
+            restartText.text = restartMessage;
+            restartText.enabled = true;
         }
     }
 
