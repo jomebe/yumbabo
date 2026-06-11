@@ -114,6 +114,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     private void Awake()
     {
+        GameSettings.Apply();
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
         currentSpeed = startSpeed;
@@ -303,7 +304,8 @@ public sealed class LunchRushPlayerController : MonoBehaviour
             return;
         }
 
-        float turnDegrees = Mathf.Clamp(mouseX * turnSensitivity, -maxTurnDegreesPerFrame, maxTurnDegreesPerFrame);
+        float sensitivity = GameSettings.SensitivityMultiplier;
+        float turnDegrees = Mathf.Clamp(mouseX * turnSensitivity * sensitivity, -maxTurnDegreesPerFrame, maxTurnDegreesPerFrame);
         controlledYaw += turnDegrees;
         ApplyControlledYaw();
         LogMouseTurn(mouseX, turnDegrees, "applied");
