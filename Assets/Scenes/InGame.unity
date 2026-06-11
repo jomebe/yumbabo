@@ -770,7 +770,7 @@ MonoBehaviour:
   lockCursor: 1
   debugMouseTurn: 0
   debugLogInterval: 0.25
-  jumpPower: 7
+  jumpPower: 10
   gravity: -22
   runStateName: HumanF@Sprint01_Forward
   jumpStateName: HumanM@Jump01

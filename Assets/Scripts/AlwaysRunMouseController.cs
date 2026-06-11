@@ -16,6 +16,7 @@ public sealed class AlwaysRunMouseController : MonoBehaviour
 
     private void Awake()
     {
+        GameSettings.Apply();
         animator = GetComponent<Animator>();
         characterController = GetComponent<CharacterController>();
 
@@ -70,7 +71,8 @@ public sealed class AlwaysRunMouseController : MonoBehaviour
         }
 
         float mouseX = Mouse.current.delta.ReadValue().x;
-        transform.Rotate(Vector3.up, mouseX * turnSensitivity, Space.World);
+        float sensitivity = GameSettings.SensitivityMultiplier;
+        transform.Rotate(Vector3.up, mouseX * turnSensitivity * sensitivity, Space.World);
     }
 
     private void MoveForward()
