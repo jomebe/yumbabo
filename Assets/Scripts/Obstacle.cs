@@ -276,7 +276,7 @@ public sealed class Obstacle : MonoBehaviour
 
         if (cachedRigidbody != null)
         {
-            cachedRigidbody.velocity = Vector3.zero;
+            cachedRigidbody.linearVelocity = Vector3.zero;
             cachedRigidbody.angularVelocity = Vector3.zero;
             cachedRigidbody.isKinematic = true;
         }

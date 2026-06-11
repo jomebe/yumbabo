@@ -123,8 +123,8 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         controlledYaw = transform.eulerAngles.y;
         lastYaw = transform.eulerAngles.y;
         hearts = maxHearts;
-        heartUI = FindFirstObjectByType<HeartUI>();
-        followCamera = FindFirstObjectByType<FollowCamera>();
+        heartUI = FindAnyObjectByType<HeartUI>();
+        followCamera = FindAnyObjectByType<FollowCamera>();
         renderers = GetComponentsInChildren<Renderer>();
         colliders = GetComponentsInChildren<Collider>();
         CacheBaseColors();
@@ -429,7 +429,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
         if (followCamera == null)
         {
-            followCamera = FindFirstObjectByType<FollowCamera>();
+            followCamera = FindAnyObjectByType<FollowCamera>();
         }
 
         followCamera?.Shake(0.45f, hearts <= 0 ? 1.2f : 0.75f);
@@ -458,7 +458,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
         if (followCamera == null)
         {
-            followCamera = FindFirstObjectByType<FollowCamera>();
+            followCamera = FindAnyObjectByType<FollowCamera>();
         }
 
         followCamera?.Shake(0.9f, 1.4f);
