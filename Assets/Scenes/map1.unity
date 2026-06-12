@@ -4450,7 +4450,7 @@ GameObject:
   - component: {fileID: 1121863822}
   m_Layer: 0
   m_Name: Stair Floor (2)
-  m_TagString: Untagged
+  m_TagString: yumbabo
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6267,11 +6267,9 @@ MonoBehaviour:
   spawnCount: 120
   spawnOnStart: 1
   spawnedParent: {fileID: 0}
-  spawnPoints: []
-  areaCenter: {x: 0, y: 4, z: 0}
-  areaSize: {x: 40, y: 0, z: 40}
+  targetTag: yumbabo
+  spawnHeightOffset: 0.5
   minSpacing: 1.5
-  maxAttemptsPerSpawn: 12
   randomYaw: 1
 --- !u!4 &1587220596
 Transform:
