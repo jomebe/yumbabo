@@ -1,13 +1,9 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public sealed class MenuSettingsButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, ISelectHandler, IDeselectHandler
 {
-    [SerializeField] private SettingsMenu settingsMenu;
-    [SerializeField] private float clickDelay = 0.08f;
-
     [Header("Animation")]
     [SerializeField] private float idlePulseSpeed = 1.8f;
     [SerializeField] private float idlePulseAmount = 0.025f;
@@ -22,7 +18,6 @@ public sealed class MenuSettingsButton : MonoBehaviour, IPointerEnterHandler, IP
     private Quaternion baseRotation;
     private bool hovered;
     private bool pressed;
-    private bool toggling;
 
     private void Awake()
     {
@@ -49,13 +44,17 @@ public sealed class MenuSettingsButton : MonoBehaviour, IPointerEnterHandler, IP
 
         hovered = false;
         pressed = false;
-        toggling = false;
         rectTransform.localScale = baseScale;
         rectTransform.localRotation = baseRotation;
     }
 
     private void Update()
     {
+        if (button != null)
+        {
+            button.interactable = !SettingsMenu.IsOpen;
+        }
+
         float pulse = Mathf.Sin(Time.unscaledTime * idlePulseSpeed) * idlePulseAmount;
         float scale = pressed ? pressedScale : (hovered ? hoverScale : 1f) + pulse;
         float tilt = pressed ? 0f : Mathf.Sin(Time.unscaledTime * idlePulseSpeed * 0.8f) * idleTiltDegrees;
@@ -99,23 +98,6 @@ public sealed class MenuSettingsButton : MonoBehaviour, IPointerEnterHandler, IP
 
     private void ToggleSettings()
     {
-        if (toggling)
-        {
-            return;
-        }
-
-        toggling = true;
-        StartCoroutine(ToggleAfterClick());
-    }
-
-    private IEnumerator ToggleAfterClick()
-    {
-        yield return new WaitForSecondsRealtime(clickDelay);
-        if (settingsMenu != null)
-        {
-            settingsMenu.Toggle();
-        }
-
-        toggling = false;
+        SettingsMenu.ToggleMenu();
     }
 }

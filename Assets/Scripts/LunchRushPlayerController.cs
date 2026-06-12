@@ -123,8 +123,8 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         controlledYaw = transform.eulerAngles.y;
         lastYaw = transform.eulerAngles.y;
         hearts = maxHearts;
-        heartUI = FindFirstObjectByType<HeartUI>();
-        followCamera = FindFirstObjectByType<FollowCamera>();
+        heartUI = FindAnyObjectByType<HeartUI>();
+        followCamera = FindAnyObjectByType<FollowCamera>();
         renderers = GetComponentsInChildren<Renderer>();
         colliders = GetComponentsInChildren<Collider>();
         CacheBaseColors();
@@ -174,6 +174,26 @@ public sealed class LunchRushPlayerController : MonoBehaviour
                 RestartScene();
             }
 
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+        {
+            if (SettingsMenu.IsOpen)
+            {
+                SettingsMenu.CloseMenu();
+            }
+            else
+            {
+                SettingsMenu.OpenMenu();
+            }
+
+            return;
+        }
+
+        if (SettingsMenu.IsOpen)
+        {
             return;
         }
 
@@ -305,7 +325,9 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         }
 
         float sensitivity = GameSettings.SensitivityMultiplier;
-        float turnDegrees = Mathf.Clamp(mouseX * turnSensitivity * sensitivity, -maxTurnDegreesPerFrame, maxTurnDegreesPerFrame);
+        float turnAmount = mouseX * turnSensitivity * sensitivity;
+        float maxTurn = maxTurnDegreesPerFrame * sensitivity;
+        float turnDegrees = Mathf.Clamp(turnAmount, -maxTurn, maxTurn);
         controlledYaw += turnDegrees;
         ApplyControlledYaw();
         LogMouseTurn(mouseX, turnDegrees, "applied");
@@ -384,7 +406,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     private void UpdateCursorLock(Keyboard keyboard, Mouse mouse)
     {
-        if (!lockCursor)
+        if (!lockCursor || SettingsMenu.IsOpen)
         {
             return;
         }
@@ -429,7 +451,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
         if (followCamera == null)
         {
-            followCamera = FindFirstObjectByType<FollowCamera>();
+            followCamera = FindAnyObjectByType<FollowCamera>();
         }
 
         followCamera?.Shake(0.45f, hearts <= 0 ? 1.2f : 0.75f);
@@ -458,7 +480,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
         if (followCamera == null)
         {
-            followCamera = FindFirstObjectByType<FollowCamera>();
+            followCamera = FindAnyObjectByType<FollowCamera>();
         }
 
         followCamera?.Shake(0.9f, 1.4f);

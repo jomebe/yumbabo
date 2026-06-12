@@ -530,7 +530,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ac74ec61201429584ab8795f86a20fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuStartButton
-  sceneName: map1
+  sceneName: InGame
   clickDelay: 0.08
   idlePulseSpeed: 2.6
   idlePulseAmount: 0.035
