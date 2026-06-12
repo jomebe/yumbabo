@@ -200,6 +200,8 @@ public sealed class SettingsMenu : MonoBehaviour
     public void Open()
     {
         EnsureBuilt();
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
         if (panelObject != null)
         {
             panelObject.SetActive(true);
@@ -228,6 +230,8 @@ public sealed class SettingsMenu : MonoBehaviour
         }
 
         IsOpen = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     public void Toggle()

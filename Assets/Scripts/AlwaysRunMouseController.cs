@@ -44,6 +44,11 @@ public sealed class AlwaysRunMouseController : MonoBehaviour
 
     private void Update()
     {
+        if (SettingsMenu.IsOpen)
+        {
+            return;
+        }
+
         UpdateCursorLock();
         TurnWithMouse();
         MoveForward();
@@ -72,7 +77,8 @@ public sealed class AlwaysRunMouseController : MonoBehaviour
 
         float mouseX = Mouse.current.delta.ReadValue().x;
         float sensitivity = GameSettings.SensitivityMultiplier;
-        transform.Rotate(Vector3.up, mouseX * turnSensitivity * sensitivity, Space.World);
+        float turnAmount = mouseX * turnSensitivity * sensitivity;
+        transform.Rotate(Vector3.up, turnAmount, Space.World);
     }
 
     private void MoveForward()

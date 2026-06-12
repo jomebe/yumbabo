@@ -177,6 +177,26 @@ public sealed class LunchRushPlayerController : MonoBehaviour
             return;
         }
 
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+        {
+            if (SettingsMenu.IsOpen)
+            {
+                SettingsMenu.CloseMenu();
+            }
+            else
+            {
+                SettingsMenu.OpenMenu();
+            }
+
+            return;
+        }
+
+        if (SettingsMenu.IsOpen)
+        {
+            return;
+        }
+
         float yawBeforeFrame = transform.eulerAngles.y;
 
         ApplyControlledYaw();
@@ -305,7 +325,9 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         }
 
         float sensitivity = GameSettings.SensitivityMultiplier;
-        float turnDegrees = Mathf.Clamp(mouseX * turnSensitivity * sensitivity, -maxTurnDegreesPerFrame, maxTurnDegreesPerFrame);
+        float turnAmount = mouseX * turnSensitivity * sensitivity;
+        float maxTurn = maxTurnDegreesPerFrame * sensitivity;
+        float turnDegrees = Mathf.Clamp(turnAmount, -maxTurn, maxTurn);
         controlledYaw += turnDegrees;
         ApplyControlledYaw();
         LogMouseTurn(mouseX, turnDegrees, "applied");
@@ -384,7 +406,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     private void UpdateCursorLock(Keyboard keyboard, Mouse mouse)
     {
-        if (!lockCursor)
+        if (!lockCursor || SettingsMenu.IsOpen)
         {
             return;
         }
