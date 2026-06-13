@@ -5381,6 +5381,7 @@ MonoBehaviour:
   hitCooldown: 0.7
   slowDuration: 0.9
   slowMultiplier: 0.45
+  finishTag: Finish
   slideDuration: 0.55
   slideScaleY: 0.5
   slideScaleSpeed: 14
@@ -13103,7 +13104,7 @@ GameObject:
   - component: {fileID: 1313962816}
   m_Layer: 0
   m_Name: gupsick
-  m_TagString: Untagged
+  m_TagString: Finish
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -14118,7 +14119,7 @@ GameObject:
   - component: {fileID: 1440718969}
   m_Layer: 0
   m_Name: Cube (2)
-  m_TagString: Untagged
+  m_TagString: Finish
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

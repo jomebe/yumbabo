@@ -111,6 +111,22 @@ public sealed class HeartUI : MonoBehaviour
         }
     }
 
+    public void ShowClear()
+    {
+        if (gameOverText != null)
+        {
+            gameOverText.text = "CLEAR";
+            gameOverText.color = new Color(0.2f, 1f, 0.45f);
+            gameOverText.enabled = true;
+        }
+
+        if (restartText != null)
+        {
+            restartText.text = "Stage complete";
+            restartText.enabled = true;
+        }
+    }
+
     private static Font GetBuiltinFont()
     {
         Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");

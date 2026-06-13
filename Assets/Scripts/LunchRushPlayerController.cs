@@ -38,6 +38,9 @@ public sealed class LunchRushPlayerController : MonoBehaviour
     [SerializeField] private float slowDuration = 0.9f;
     [SerializeField] private float slowMultiplier = 0.45f;
 
+    [Header("Clear")]
+    [SerializeField] private string finishTag = "Finish";
+
     [Header("Slide")]
     [SerializeField] private float slideDuration = 0.55f;
     [SerializeField] private float slideScaleY = 0.5f;
@@ -93,6 +96,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
     private int hearts;
     private bool jumpAnimationActive;
     private bool dead;
+    private bool cleared;
     private Renderer[] renderers;
     private Color[] baseColors;
     private Collider[] colliders;
@@ -167,6 +171,11 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (cleared)
+        {
+            return;
+        }
+
         if (dead)
         {
             if (restartOnAnyKey && Time.time - deathTime >= gameOverInputDelay && IsRestartPressed())
@@ -229,6 +238,16 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         }
 
         ApplyControlledYaw();
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        TryClear(other);
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        TryClear(hit.collider);
     }
 
     private void ReadInput()
@@ -438,7 +457,7 @@ public sealed class LunchRushPlayerController : MonoBehaviour
 
     public void HitObstacle(string obstacleName)
     {
-        if (hitCooldownTimer > 0f)
+        if (cleared || hitCooldownTimer > 0f)
         {
             return;
         }
@@ -461,6 +480,63 @@ public sealed class LunchRushPlayerController : MonoBehaviour
         {
             Die();
         }
+    }
+
+    private void TryClear(Collider other)
+    {
+        if (cleared || dead || other == null || !other.CompareTag(finishTag))
+        {
+            return;
+        }
+
+        ClearGame();
+    }
+
+    public void ClearGame()
+    {
+        if (cleared || dead)
+        {
+            return;
+        }
+
+        cleared = true;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        if (heartUI == null)
+        {
+            heartUI = FindAnyObjectByType<HeartUI>();
+        }
+
+        if (heartUI == null)
+        {
+            heartUI = HeartUI.CreateRuntime();
+            heartUI.SetHearts(hearts, maxHearts);
+        }
+
+        heartUI.ShowClear();
+
+        if (controller != null)
+        {
+            controller.enabled = false;
+        }
+
+        if (animator != null)
+        {
+            animator.enabled = false;
+        }
+
+        if (followCamera == null)
+        {
+            followCamera = FindAnyObjectByType<FollowCamera>();
+        }
+
+        if (followCamera != null)
+        {
+            followCamera.enabled = false;
+        }
+
+        Debug.Log("[LunchRushClear]");
     }
 
     private void Die()

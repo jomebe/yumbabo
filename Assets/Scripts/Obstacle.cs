@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class Obstacle : MonoBehaviour
@@ -12,6 +13,7 @@ public sealed class Obstacle : MonoBehaviour
     [SerializeField] private float retargetInterval = 1.5f;
     [SerializeField] private float arriveDistance = 0.2f;
     [SerializeField] private bool constrainToXZ = true;
+    [SerializeField] private float bfsCellSize = 1f;
 
     [Header("Facing")]
     [SerializeField] private bool faceMoveDirection = true;
@@ -36,6 +38,8 @@ public sealed class Obstacle : MonoBehaviour
 
     private Vector3 origin;
     private Vector3 targetPosition;
+    private readonly List<Vector3> path = new List<Vector3>();
+    private int pathIndex;
     private float retargetTimer;
     private Rigidbody cachedRigidbody;
     private Animator animator;
@@ -88,7 +92,7 @@ public sealed class Obstacle : MonoBehaviour
         StepWander(Time.deltaTime);
         UpdateRunAnimation();
         UpdateFacing(Time.deltaTime);
-        Vector3 next = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+        Vector3 next = Vector3.MoveTowards(transform.position, GetCurrentWaypoint(), moveSpeed * Time.deltaTime);
         transform.position = next;
     }
 
@@ -102,7 +106,7 @@ public sealed class Obstacle : MonoBehaviour
         StepWander(Time.fixedDeltaTime);
         UpdateRunAnimation();
         UpdateFacing(Time.fixedDeltaTime);
-        Vector3 next = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.fixedDeltaTime);
+        Vector3 next = Vector3.MoveTowards(transform.position, GetCurrentWaypoint(), moveSpeed * Time.fixedDeltaTime);
         cachedRigidbody.MovePosition(next);
     }
 
@@ -137,7 +141,12 @@ public sealed class Obstacle : MonoBehaviour
     private void StepWander(float deltaTime)
     {
         retargetTimer -= deltaTime;
-        if (retargetTimer <= 0f || Vector3.Distance(transform.position, targetPosition) <= arriveDistance)
+        if (path.Count > 0 && Vector3.Distance(transform.position, GetCurrentWaypoint()) <= arriveDistance)
+        {
+            pathIndex++;
+        }
+
+        if (retargetTimer <= 0f || pathIndex >= path.Count)
         {
             PickNewTarget();
         }
@@ -153,6 +162,96 @@ public sealed class Obstacle : MonoBehaviour
         }
 
         targetPosition = origin + offset;
+        BuildBfsPath(targetPosition);
+    }
+
+    private Vector3 GetCurrentWaypoint()
+    {
+        if (path.Count == 0 || pathIndex >= path.Count)
+        {
+            return targetPosition;
+        }
+
+        return path[pathIndex];
+    }
+
+    private void BuildBfsPath(Vector3 destination)
+    {
+        path.Clear();
+        pathIndex = 0;
+
+        float cellSize = Mathf.Max(0.1f, bfsCellSize);
+        int radiusCells = Mathf.Max(1, Mathf.CeilToInt(roamRadius / cellSize));
+        Vector2Int start = WorldToCell(transform.position, cellSize);
+        Vector2Int goal = WorldToCell(destination, cellSize);
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        Dictionary<Vector2Int, Vector2Int> previous = new Dictionary<Vector2Int, Vector2Int>();
+
+        queue.Enqueue(start);
+        previous[start] = start;
+
+        Vector2Int[] directions =
+        {
+            new Vector2Int(1, 0),
+            new Vector2Int(-1, 0),
+            new Vector2Int(0, 1),
+            new Vector2Int(0, -1)
+        };
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            if (current == goal)
+            {
+                break;
+            }
+
+            for (int i = 0; i < directions.Length; i++)
+            {
+                Vector2Int next = current + directions[i];
+                if (previous.ContainsKey(next) || next.sqrMagnitude > radiusCells * radiusCells)
+                {
+                    continue;
+                }
+
+                previous[next] = current;
+                queue.Enqueue(next);
+            }
+        }
+
+        if (!previous.ContainsKey(goal))
+        {
+            path.Add(destination);
+            return;
+        }
+
+        List<Vector2Int> cells = new List<Vector2Int>();
+        Vector2Int step = goal;
+        while (step != start)
+        {
+            cells.Add(step);
+            step = previous[step];
+        }
+
+        cells.Reverse();
+        for (int i = 0; i < cells.Count; i++)
+        {
+            path.Add(CellToWorld(cells[i], cellSize));
+        }
+    }
+
+    private Vector2Int WorldToCell(Vector3 worldPosition, float cellSize)
+    {
+        Vector3 local = worldPosition - origin;
+        return new Vector2Int(
+            Mathf.RoundToInt(local.x / cellSize),
+            Mathf.RoundToInt(local.z / cellSize)
+        );
+    }
+
+    private Vector3 CellToWorld(Vector2Int cell, float cellSize)
+    {
+        return origin + new Vector3(cell.x * cellSize, 0f, cell.y * cellSize);
     }
 
     private void UpdateRunAnimation()
@@ -181,7 +280,7 @@ public sealed class Obstacle : MonoBehaviour
             return;
         }
 
-        Vector3 direction = targetPosition - transform.position;
+        Vector3 direction = GetCurrentWaypoint() - transform.position;
         if (constrainToXZ)
         {
             direction.y = 0f;
